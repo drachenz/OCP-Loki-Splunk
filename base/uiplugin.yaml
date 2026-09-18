@@ -1,0 +1,14 @@
+# Observe -> Logs console view, provided by the Cluster Observability Operator.
+apiVersion: observability.openshift.io/v1alpha1
+kind: UIPlugin
+metadata:
+  name: logging
+spec:
+  type: Logging
+  logging:
+    lokiStack:
+      name: logging-loki
+      namespace: openshift-logging
+    schema: viaq
+    logsLimit: 200
+    showTimezoneSelector: true

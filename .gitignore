@@ -1,0 +1,9 @@
+# Environment-specific settings and credentials; commit only the *.example templates
+*/cluster.env
+*/secrets/*.env
+
+# TLS certificates and private keys
+certs/
+*.pem
+*.key
+

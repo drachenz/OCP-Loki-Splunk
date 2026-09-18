@@ -1,0 +1,39 @@
+apiVersion: observability.openshift.io/v1
+kind: ClusterLogForwarder
+metadata:
+  name: collector
+  namespace: openshift-logging
+spec:
+  serviceAccount:
+    name: logcollector
+  outputs:
+    - name: default-lokistack
+      type: lokiStack
+      lokiStack:
+        authentication:
+          token:
+            from: serviceAccount
+        target:
+          name: logging-loki
+          namespace: openshift-logging
+      tls:
+        ca:
+          key: service-ca.crt
+          configMapName: openshift-service-ca.crt
+    - name: splunk
+      type: splunk
+      splunk:
+        url: https://changeme:8088
+        authentication:
+          token:
+            secretName: splunk-hec
+            key: hecToken
+  pipelines:
+    - name: all-logs
+      inputRefs:
+        - application
+        - infrastructure
+        - audit
+      outputRefs:
+        - default-lokistack
+        - splunk

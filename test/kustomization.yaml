@@ -1,0 +1,66 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Test environment overlay.
+#
+# Environment-specific values and credentials are kept in local files that are
+# excluded from version control. Create them from the provided templates:
+#
+#   cp cluster.env.example            cluster.env
+#   cp secrets/loki-s3.env.example    secrets/loki-s3.env
+#   cp secrets/splunk-hec.env.example secrets/splunk-hec.env
+
+resources:
+  - ../base
+
+# LokiStack and ClusterLogForwarder reference Secrets by fixed name, so
+# generated resources must not receive a content-hash suffix.
+generatorOptions:
+  disableNameSuffixHash: true
+
+# Cluster settings are consumed by the replacements below only; the
+# local-config annotation keeps this ConfigMap out of the rendered output.
+configMapGenerator:
+  - name: cluster-settings
+    envs:
+      - cluster.env
+    options:
+      annotations:
+        config.kubernetes.io/local-config: "true"
+
+secretGenerator:
+  - name: logging-loki-s3
+    namespace: openshift-logging
+    type: Opaque
+    envs:
+      - secrets/loki-s3.env
+  - name: splunk-hec
+    namespace: openshift-logging
+    type: Opaque
+    envs:
+      - secrets/splunk-hec.env
+
+replacements:
+  - source:
+      kind: ConfigMap
+      name: cluster-settings
+      fieldPath: data.splunkUrl
+    targets:
+      - select:
+          kind: ClusterLogForwarder
+          name: collector
+        fieldPaths:
+          - spec.outputs.[name=splunk].splunk.url
+  - source:
+      kind: ConfigMap
+      name: cluster-settings
+      fieldPath: data.storageClassName
+    targets:
+      - select:
+          kind: LokiStack
+          name: logging-loki
+        fieldPaths:
+          - spec.storageClassName
+
+patches:
+  - path: patches/lokistack.yaml
